@@ -1,0 +1,24 @@
+# 1. 미러링된 대용량 자산 폴더 (데이터 양이 많음)
+_external/
+
+# 2. 파이썬 임시 파일 및 가상환경
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# 3. 테스트용 임시 HTML 파일
+temp_test*.html
+m_sample*.html
+m_sample_upgraded.html
+
+# 4. IDE 및 시스템 설정 파일
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 5. 스킬 및 에이전트 관련 (필요 시 제외)
+# .agents/
