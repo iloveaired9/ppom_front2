@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ppomppu Localizer Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --sidebar-bg: rgba(15, 23, 42, 0.8);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(147, 51, 234, 0.1) 0px, transparent 50%);
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 280px;
+            background: #1e293b; /* Solid color for better contrast */
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            padding: 32px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            margin: 0;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 12px;
+        }
+
+        .file-item {
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.9375rem;
+            color: #cbd5e1; /* Brighter text */
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            border: 1px solid transparent;
+        }
+
+        .file-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .file-item.active {
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .file-item span {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .view-link, .delete-link {
+            padding: 6px;
+            border-radius: 8px;
+            color: #94a3b8;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .view-link:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .delete-link:hover {
+            color: #ff4d4d;
+            background: rgba(255, 0, 0, 0.2);
+        }
+
+        .file-item.active .view-link, 
+        .file-item.active .delete-link {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .file-item svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            opacity: 0.8;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            height: fit-content;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        p.subtitle {
+            color: #94a3b8;
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+
+        textarea {
+            width: 100%;
+            height: 400px;
+            background: #111827; /* Slightly darker and solid for better code contrast */
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9375rem;
+            resize: vertical;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+            line-height: 1.6;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text);
+            box-sizing: border-box;
+        }
+
+        .actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 32px;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background-color: #475569;
+            cursor: not-allowed;
+        }
+
+        .log-container {
+            margin-top: 32px;
+            background: black;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #10b981;
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            display: none;
+        }
+
+        .log-container.visible {
+            display: block;
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .success-link {
+            margin-top: 16px;
+            display: none;
+            color: #60a5fa;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .success-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Templates</h2>
+        </div>
+        <div id="file_list" class="file-list">
+            <!-- Files will be loaded here -->
+            <div style="padding: 20px; color: #475569; font-size: 0.875rem;">Loading files...</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <h1>Localization Admin</h1>
+            <p class="subtitle">Enter raw HTML content or select a template from the sidebar.</p>
+
+            <div class="form-group">
+                <label for="output_name">Output Filename</label>
+                <input type="text" id="output_name" placeholder="e.g., m_dark_new.html" value="m_dark_new.html">
+            </div>
+
+            <div class="form-group">
+                <label for="html_input">HTML Content</label>
+                <textarea id="html_input" placeholder="Paste your HTML here or load from sidebar..."></textarea>
+            </div>
+
+            <div class="actions">
+                <button id="run_btn">
+                    <div id="spinner" class="loading-spinner"></div>
+                    Run Localize
+                </button>
+            </div>
+
+            <a id="result_link" class="success-link" target="_blank">View Result</a>
+
+            <div id="log" class="log-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const runBtn = document.getElementById('run_btn');
+        const spinner = document.getElementById('spinner');
+        const htmlInput = document.getElementById('html_input');
+        const outputName = document.getElementById('output_name');
+        const logBox = document.getElementById('log');
+        const resultLink = document.getElementById('result_link');
+        const fileList = document.getElementById('file_list');
+
+        // Load file list on startup
+        async function loadFileList() {
+            try {
+                const response = await fetch('/api/files');
+                const files = await response.json();
+                
+                fileList.innerHTML = '';
+                files.forEach(file => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="min-width:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <span onclick="event.stopPropagation(); loadFile('${file}', this.parentElement)">${file}</span>
+                        <a href="/${file}" target="_blank" class="view-link" onclick="event.stopPropagation();" title="View Page">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </a>
+                        <a href="javascript:;" class="delete-link" onclick="event.stopPropagation(); deleteFile('${file}')" title="Delete File">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </a>
+                    `;
+                    div.onclick = () => loadFile(file, div);
+                    fileList.appendChild(div);
+                });
+
+                if (files.length === 0) {
+                    fileList.innerHTML = '<div style="padding: 20px; color: #475569; font-size: 0.875rem;">No m*.html files found.</div>';
+                }
+            } catch (err) {
+                fileList.innerHTML = `<div style="padding: 20px; color: #ef4444; font-size: 0.875rem;">Error loading files: ${err.message}</div>`;
+            }
+        }
+
+        // Load content of a specific file
+        async function loadFile(filename, element) {
+            document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+
+            try {
+                htmlInput.value = 'Loading content...';
+                const response = await fetch(`/api/file/${filename}`);
+                const content = await response.text();
+                htmlInput.value = content;
+                
+                if (filename === 'm.html') {
+                    outputName.value = 'm2.html';
+                } else if (!filename.includes('_dark')) {
+                    outputName.value = filename.replace('.html', '_dark.html');
+                } else {
+                    outputName.value = filename.replace('.html', '_v2.html');
+                }
+            } catch (err) {
+                alert(`Error loading file: ${err.message}`);
+                htmlInput.value = '';
+            }
+        }
+
+        async function deleteFile(filename) {
+            if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
+
+            try {
+                const response = await fetch('/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ filename })
+                });
+
+                if (response.ok) {
+                    if (htmlInput.value.includes(filename) || document.querySelector('.file-item.active')?.innerText.includes(filename)) {
+                        htmlInput.value = '';
+                    }
+                    loadFileList();
+                } else {
+                    const msg = await response.text();
+                    alert(`Failed to delete: ${msg}`);
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+        }
+
+        runBtn.onclick = async () => {
+            const html = htmlInput.value;
+            const output = outputName.value || 'result.html';
+
+            if (!html || html === 'Loading content...') {
+                alert('Please input HTML content');
+                return;
+            }
+
+            runBtn.disabled = true;
+            spinner.style.display = 'block';
+            logBox.className = 'log-container visible';
+            logBox.innerHTML = 'Starting process...\n';
+            resultLink.style.display = 'none';
+
+            try {
+                const response = await fetch('/localize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ html, output_name: output })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const text = decoder.decode(value, { stream: true });
+                    logBox.innerHTML += text;
+                    logBox.scrollTop = logBox.scrollHeight;
+                }
+
+                logBox.innerHTML += '\nProcess Finished.';
+                resultLink.href = `/${output}`;
+                resultLink.innerText = `View Generated File: ${output}`;
+                resultLink.style.display = 'block';
+
+                // Refresh file list after localized file is created
+                loadFileList();
+
+            } catch (err) {
+                logBox.innerHTML += `\nError: ${err.message}`;
+            } finally {
+                runBtn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        };
+
+        // Initial load
+        loadFileList();
+    </script>
+</body>
+</html>
