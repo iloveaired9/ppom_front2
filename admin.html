@@ -281,25 +281,22 @@
             text-decoration: underline;
         }
 
-        /* Scrollbar styles */
-        ::-webkit-scrollbar {
-            width: 8px;
+        /* Resizer styles */
+        .resizer {
+            width: 4px;
+            cursor: col-resize;
+            background: rgba(255, 255, 255, 0.05);
+            transition: background 0.2s;
+            z-index: 20;
         }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.2);
+        .resizer:hover, .resizer.dragging {
+            background: var(--primary);
         }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <h2>Templates</h2>
         </div>
@@ -308,6 +305,8 @@
             <div style="padding: 20px; color: #475569; font-size: 0.875rem;">Loading files...</div>
         </div>
     </div>
+
+    <div class="resizer" id="resizer"></div>
 
     <div class="main-content">
         <div class="container">
@@ -478,6 +477,42 @@
 
         // Initial load
         loadFileList();
+
+        // Resizable Sidebar Logic
+        const resizer = document.getElementById('resizer');
+        const sidebar = document.getElementById('sidebar');
+        let isResizing = false;
+
+        // Load saved width
+        const savedWidth = localStorage.getItem('sidebarWidth');
+        if (savedWidth) {
+            sidebar.style.width = savedWidth + 'px';
+        }
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            resizer.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            let newWidth = e.clientX;
+            if (newWidth < 150) newWidth = 150;
+            if (newWidth > 600) newWidth = 600;
+            
+            sidebar.style.width = newWidth + 'px';
+            localStorage.setItem('sidebarWidth', newWidth);
+        });
+
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+            resizer.classList.remove('dragging');
+            document.body.style.cursor = 'default';
+            document.body.style.userSelect = 'auto';
+        });
     </script>
 </body>
 </html>
