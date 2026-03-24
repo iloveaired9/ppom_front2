@@ -1,17 +1,21 @@
-// --- Tab Switching Logic ---
 document.getElementById('tab-audit').addEventListener('click', () => switchTab('audit'));
 document.getElementById('tab-merge').addEventListener('click', () => switchTab('merge'));
+document.getElementById('tab-batch').addEventListener('click', () => switchTab('batch'));
 
 function switchTab(tab) {
   const isAudit = tab === 'audit';
-  document.getElementById('content-audit').style.display = isAudit ? 'block' : 'none';
-  document.getElementById('content-merge').style.display = isAudit ? 'none' : 'flex';
-  document.getElementById('tab-audit').classList.toggle('active', isAudit);
-  document.getElementById('tab-merge').classList.toggle('active', !isAudit);
-  document.getElementById('tab-audit').style.color = isAudit ? 'var(--primary)' : 'var(--text-dim)';
-  document.getElementById('tab-merge').style.color = isAudit ? 'var(--text-dim)' : 'var(--primary)';
+  const isMerge = tab === 'merge';
+  const isBatch = tab === 'batch';
   
-  if (!isAudit) refreshHistoryList();
+  document.getElementById('content-audit').style.display = isAudit ? 'block' : 'none';
+  document.getElementById('content-merge').style.display = isMerge ? 'flex' : 'none';
+  document.getElementById('content-batch').style.display = isBatch ? 'flex' : 'none';
+  
+  document.getElementById('tab-audit').classList.toggle('active', isAudit);
+  document.getElementById('tab-merge').classList.toggle('active', isMerge);
+  document.getElementById('tab-batch').classList.toggle('active', isBatch);
+  
+  if (isMerge) refreshHistoryList();
 }
 
 
@@ -38,6 +42,9 @@ async function fetchWithEncoding(url) {
 // --- Initialize: Fetch sheets on load ---
 let lastScannedUrl = '';
 let classifyScans = false;
+let batchQueue = [];
+let isBatchRunning = false;
+let batchCurrentIdx = 0;
 document.addEventListener('DOMContentLoaded', () => {
   // Restore Auto Scan setting
   const autoScanCheckbox = document.getElementById('auto-scan-checkbox');
@@ -431,6 +438,12 @@ async function updateUI(used, total, percentage, cssGroups) {
     const sameFileScans = history.filter(i => i.groups && i.groups[currentFn]);
     saveBtn.innerText = `Saved (Total ${sameFileScans.length} pages)`;
     saveBtn.style.color = '#10b981';
+
+    // Proceed if batch is running
+    if (isBatchRunning) {
+      batchCurrentIdx++;
+      setTimeout(processNextBatchItem, 2000); // 2s delay BEFORE navigation for stability
+    }
   } else {
     saveBtn.style.display = 'none';
   }
@@ -683,3 +696,85 @@ document.getElementById('copy-btn').addEventListener('click', () => {
 document.getElementById('save-history-btn')?.addEventListener('click', () => {
   switchTab('merge');
 });
+
+document.getElementById('copy-urls-btn')?.addEventListener('click', () => {
+  const history = JSON.parse(localStorage.getItem('auditHistory') || '[]');
+  const urls = history.map(item => {
+    let u = item.url;
+    if (u.startsWith('/')) u = 'https://m.ppomppu.co.kr' + u;
+    return u;
+  });
+  const uniqueUrls = [...new Set(urls)];
+  if (uniqueUrls.length === 0) {
+    alert('No URLs to copy.');
+    return;
+  }
+  navigator.clipboard.writeText(uniqueUrls.join('\n')).then(() => {
+    const btn = document.getElementById('copy-urls-btn');
+    const originalText = btn.innerText;
+    btn.innerText = 'Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => {
+      btn.innerText = originalText;
+      btn.style.color = '';
+    }, 2000);
+  });
+});
+
+document.getElementById('start-batch-btn')?.addEventListener('click', () => {
+  if (isBatchRunning) {
+    stopBatch();
+  } else {
+    startBatch();
+  }
+});
+
+function startBatch() {
+  const text = document.getElementById('batch-urls').value;
+  batchQueue = text.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+  if (batchQueue.length === 0) {
+    alert('Please enter at least one URL.');
+    return;
+  }
+
+  isBatchRunning = true;
+  batchCurrentIdx = 0;
+  
+  const btn = document.getElementById('start-batch-btn');
+  btn.innerText = 'Stop Batch Scan';
+  btn.style.background = '#ef4444';
+  
+  processNextBatchItem();
+}
+
+function stopBatch() {
+  isBatchRunning = false;
+  const btn = document.getElementById('start-batch-btn');
+  if (btn) {
+    btn.innerText = 'Start Batch Scan';
+    btn.style.background = 'var(--primary)';
+  }
+  document.getElementById('batch-status').innerText = 'Ready';
+}
+
+async function processNextBatchItem() {
+  if (!isBatchRunning) return;
+  if (batchCurrentIdx >= batchQueue.length) {
+    alert('Batch Scan Completed!');
+    stopBatch();
+    return;
+  }
+
+  const url = batchQueue[batchCurrentIdx];
+  document.getElementById('batch-status').innerText = `Scanning ${batchCurrentIdx + 1}/${batchQueue.length}...`;
+  
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) {
+    console.error('No active tab found for batch scan');
+    stopBatch();
+    return;
+  }
+
+  // Navigate the tab - Auto Scan must be enabled for this to work automatically
+  chrome.tabs.update(tab.id, { url: url });
+}

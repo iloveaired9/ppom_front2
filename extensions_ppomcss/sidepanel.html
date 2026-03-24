@@ -146,6 +146,40 @@
       transform: translateY(-1px);
     }
 
+    .tab-bar {
+      display: flex;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 4px;
+      border-radius: 14px;
+      gap: 4px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .tab-btn:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
     .copy-btn {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border);
@@ -178,9 +212,10 @@
       </div>
     </header>
 
-    <div class="tabs-nav" style="display: flex; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-      <div class="tab-item active" id="tab-audit" style="cursor: pointer; font-weight: 600; color: var(--primary); font-size: 14px;">Audit</div>
-      <div class="tab-item" id="tab-merge" style="cursor: pointer; font-weight: 600; color: var(--text-dim); font-size: 14px;">Merge History</div>
+    <div class="tab-bar">
+      <button id="tab-audit" class="tab-btn active">Audit</button>
+      <button id="tab-merge" class="tab-btn">Merge</button>
+      <button id="tab-batch" class="tab-btn">Batch</button>
     </div>
 
     <div id="content-audit">
@@ -230,8 +265,9 @@
         <div class="section-header" style="margin-bottom: 12px;">
           <span id="history-title" class="section-title">Saved Scans</span>
           <div style="display: flex; gap: 8px;">
-            <button id="classify-btn" class="action-btn copy-btn">Classify</button>
-            <button id="clear-history-btn" class="action-btn copy-btn" style="color: #ef4444;">Clear All</button>
+            <button id="copy-urls-btn" class="action-btn copy-btn" title="Copy all scanned URLs">URLs</button>
+            <button id="classify-btn" class="action-btn copy-btn">Status</button>
+            <button id="clear-history-btn" class="action-btn copy-btn" style="color: #ef4444;">Clear</button>
           </div>
         </div>
         <div id="history-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 200px; overflow-y: auto;">
@@ -246,6 +282,20 @@
           <button id="merge-btn" class="action-btn" style="padding: 6px 16px; font-size: 12px;">Merge & Deduplicate</button>
         </div>
         <div class="code-container" id="merged-css-code" style="flex: 1; margin-top: 10px;">/* Merge saved scans to generate unified CSS... */</div>
+      </div>
+    </div>
+
+    <!-- Batch Scan Content -->
+    <div id="content-batch" style="display: none; flex-direction: column; gap: 16px; height: 100%; overflow: hidden;">
+      <div class="card" style="flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0;">
+        <div class="section-header">
+          <span class="section-title">Batch Audit</span>
+          <span id="batch-status" style="font-size: 11px; color: var(--primary); font-weight: 700;">Ready</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-dim); margin: 4px 0 12px 0; line-height: 1.5;">Enter target URLs (one per line). The extension will sequentially audit each page.</p>
+        <textarea id="batch-urls" placeholder="https://m.ppomppu.co.kr/new/bbs_list.php?id=freeboard&#10;https://m.ppomppu.co.kr/new/bbs_list.php?id=ppomppu" 
+          style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: #f1f5f9; padding: 16px; font-family: 'Fira Code', monospace; font-size: 11px; resize: none; outline: none; line-height: 1.6;"></textarea>
+        <button id="start-batch-btn" class="primary-btn action-btn" style="margin-top: 8px; width: 100%;">Start Batch Scan</button>
       </div>
     </div>
 
