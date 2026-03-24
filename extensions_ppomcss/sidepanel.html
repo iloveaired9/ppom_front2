@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg: #0b0f1a;
+      --card-bg: rgba(23, 32, 53, 0.8);
+      --text: #f8fafc;
+      --text-dim: #64748b;
+      --success: #10b981;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .container {
+      padding: 24px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0;
+      background: linear-gradient(135deg, #a5b4fc, #818cf8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 800;
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    .stats-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .percentage {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .progress-bar-container {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      margin: 16px 0;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #a5b4fc);
+      width: 0%;
+      transition: width 0.8s ease-out;
+    }
+
+    .code-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .code-container {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      font-family: 'Fira Code', 'Monaco', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow: auto;
+      flex: 1;
+      color: #cbd5e1;
+      white-space: pre;
+    }
+
+    .action-btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 12px;
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .action-btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>PpomCSS Audit</h1>
+      <div style="display: flex; gap: 8px;">
+        <button id="analyze-btn" class="action-btn">Scan CSS</button>
+        <button id="preview-btn" class="action-btn" style="background: var(--success); display: none;">Preview</button>
+      </div>
+    </header>
+
+    <div class="tabs-nav" style="display: flex; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      <div class="tab-item active" id="tab-audit" style="cursor: pointer; font-weight: 600; color: var(--primary); font-size: 14px;">Audit</div>
+      <div class="tab-item" id="tab-merge" style="cursor: pointer; font-weight: 600; color: var(--text-dim); font-size: 14px;">Merge History</div>
+    </div>
+
+    <div id="content-audit">
+      <div class="card">
+        <div class="section-header" style="margin-bottom: 12px;">
+          <span class="section-title">Select Stylesheets</span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <label style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+              <input type="checkbox" id="auto-scan-checkbox"> Auto
+            </label>
+            <button id="refresh-sheets-btn" class="action-btn copy-btn">Refresh</button>
+          </div>
+        </div>
+        <div id="sheet-list" style="max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+          <!-- Checkboxes will be injected here -->
+          <div style="font-size: 12px; color: var(--text-dim);">Loading sheets...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="stats-row">
+          <div class="percentage" id="coverage-percent">0%</div>
+          <div class="stat-label">Coverage Factor</div>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-dim);">
+          Used: <span id="used-rules" style="color: var(--text);">0</span> / <span id="total-rules">0</span> rules
+        </div>
+      </div>
+
+      <div class="code-section" style="margin-top: 20px;">
+        <div class="section-header">
+          <span class="section-title">Extracted Used CSS</span>
+          <div style="display: flex; gap: 8px;">
+            <button id="save-history-btn" class="action-btn copy-btn" style="display: none; border-color: var(--primary); color: var(--primary);">Save to History</button>
+            <button id="copy-btn" class="action-btn copy-btn" style="display: none;">Copy Code</button>
+          </div>
+        </div>
+        <div class="code-container" id="used-css-code">/* Run scan to see extracted code... */</div>
+      </div>
+    </div>
+
+    <div id="content-merge" style="display: none; flex-direction: column; gap: 20px; flex: 1;">
+      <div class="card">
+        <div class="section-header" style="margin-bottom: 12px;">
+          <span id="history-title" class="section-title">Saved Scans</span>
+          <div style="display: flex; gap: 8px;">
+            <button id="classify-btn" class="action-btn copy-btn">Classify</button>
+            <button id="clear-history-btn" class="action-btn copy-btn" style="color: #ef4444;">Clear All</button>
+          </div>
+        </div>
+        <div id="history-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 200px; overflow-y: auto;">
+          <!-- History items will be injected here -->
+          <div style="font-size: 12px; color: var(--text-dim);">No saved scans yet.</div>
+        </div>
+      </div>
+
+      <div class="code-section" style="flex: 1; display: flex; flex-direction: column;">
+        <div class="section-header">
+          <span class="section-title">Merged Result</span>
+          <button id="merge-btn" class="action-btn" style="padding: 6px 16px; font-size: 12px;">Merge & Deduplicate</button>
+        </div>
+        <div class="code-container" id="merged-css-code" style="flex: 1; margin-top: 10px;">/* Merge saved scans to generate unified CSS... */</div>
+      </div>
+    </div>
+
+    <footer style="font-size: 11px; text-align: center; color: var(--text-dim); opacity: 0.5;">
+      Professional Optimization Suite v1.1
+    </footer>
+  </div>
+  <!-- Summary Modal -->
+  <div id="classify-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; padding: 20px; box-sizing: border-box; backdrop-filter: blur(4px);">
+    <div class="card" style="max-height: 80%; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+      <div class="section-header">
+        <span class="section-title">Audit Summary (by Board ID)</span>
+        <button id="close-modal-btn" class="action-btn" style="background: rgba(255,255,255,0.1); border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0;">✕</button>
+      </div>
+      <div id="modal-content" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

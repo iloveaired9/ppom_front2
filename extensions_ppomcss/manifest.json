@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "PpomCSS Audit",
+  "version": "1.0",
+  "description": "Visualize and optimize CSS coverage for Ppomppu mobile pages.",
+  "permissions": ["activeTab", "scripting", "sidePanel"],
+  "host_permissions": [
+    "*://*.ppomppu.co.kr/*",
+    "http://localhost/*"
+  ],
+  "action": {
+    "default_title": "Open PpomCSS Audit"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.ppomppu.co.kr/*", "http://localhost/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
