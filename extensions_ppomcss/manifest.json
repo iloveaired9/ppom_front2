@@ -3,10 +3,9 @@
   "name": "PpomCSS Audit",
   "version": "1.0",
   "description": "Visualize and optimize CSS coverage for Ppomppu mobile pages.",
-  "permissions": ["activeTab", "scripting", "sidePanel"],
+  "permissions": ["activeTab", "scripting", "sidePanel", "tabs", "storage"],
   "host_permissions": [
-    "*://*.ppomppu.co.kr/*",
-    "http://localhost/*"
+    "<all_urls>"
   ],
   "action": {
     "default_title": "Open PpomCSS Audit"
