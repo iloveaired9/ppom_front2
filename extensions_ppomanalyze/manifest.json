@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Web Resource Traffic Analyzer",
+  "version": "1.0",
+  "description": "Analyze network traffic by extension and identify top resource consumers.",
+  "permissions": ["activeTab", "storage", "sidePanel", "webRequest", "scripting", "tabs", "webNavigation"],
+  "host_permissions": [
+    "*://*.ppomppu.co.kr/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "action": {
+    "default_title": "Traffic Analyzer"
+  }
+}

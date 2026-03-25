@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Traffic Analyzer Panel</title>
+  <style>
+    :root {
+      --primary: #a78bfa;
+      --primary-hover: #c4b5fd;
+      --bg: #1e1e2e;
+      --card-bg: rgba(45, 45, 68, 0.6);
+      --text: #e2e8f0;
+      --text-dim: #94a3af;
+      --border: rgba(255, 255, 255, 0.08);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .container {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      color: var(--primary);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 20px;
+      margin-top: 10px;
+    }
+
+    .tab {
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      padding-bottom: 6px;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      margin-top: 4px;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .list-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .list-container {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-dim);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .type-badge {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .type-image { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .type-js { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .type-css { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .type-other { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+
+    .btn-clear {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .btn-clear:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      margin-left: 8px;
+      transition: all 0.2s;
+      opacity: 0;
+    }
+
+    tr:hover .copy-btn {
+      opacity: 1;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--primary);
+    }
+
+    .copy-btn.copied {
+      color: var(--success);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Resource Traffic Analyzer</h1>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <label style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+          <input type="checkbox" id="cdn-filter" style="accent-color: var(--primary);"> CDN 제외
+        </label>
+        <button id="clear-btn" class="btn-clear">Clear Data</button>
+      </div>
+    </header>
+
+    <div class="tab-bar">
+      <div class="tab active" data-tab="dashboard">Dashboard</div>
+      <div class="tab" data-tab="extensions">Extensions</div>
+      <div class="tab" data-tab="top-list">Requests</div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div id="view-dashboard" class="dashboard-grid">
+      <div class="card">
+        <div class="stat-label">Total Traffic</div>
+        <div class="stat-value" id="total-traffic">0 KB</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Requests</div>
+        <div class="stat-value" id="total-count">0</div>
+      </div>
+    </div>
+
+    <!-- Extensions View -->
+    <div id="view-extensions" class="list-section" style="display: none;">
+      <div id="extensions-summary" style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; font-weight: 600;"></div>
+      <div class="list-container">
+        <table id="extensions-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>%</th>
+              <th>Count</th>
+              <th>Size</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Top List View -->
+    <div id="view-top-list" class="list-section" style="display: none;">
+      <div id="requests-summary" style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; font-weight: 600;"></div>
+      <div class="list-container">
+        <table id="top-list-table">
+          <thead>
+            <tr>
+              <th>Filename</th>
+              <th>%</th>
+              <th>Ext</th>
+              <th>Type</th>
+              <th>Size</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="panel.js"></script>
+</body>
+</html>
