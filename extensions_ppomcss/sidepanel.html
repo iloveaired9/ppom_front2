@@ -123,6 +123,17 @@
       flex: 1;
       color: #cbd5e1;
       white-space: pre;
+      resize: vertical;
+      outline: none;
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 250px;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .code-container:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
     }
 
     .action-btn {
@@ -209,6 +220,7 @@
       <div style="display: flex; gap: 8px;">
         <button id="analyze-btn" class="action-btn">Scan CSS</button>
         <button id="preview-btn" class="action-btn" style="background: var(--success); display: none;">Preview</button>
+        <button id="restore-btn" class="action-btn" style="background: #ef4444; display: none;">Restore</button>
       </div>
     </header>
 
@@ -218,7 +230,7 @@
       <button id="tab-batch" class="tab-btn">Batch</button>
     </div>
 
-    <div id="content-audit">
+    <div id="content-audit" style="flex: 1; display: flex; flex-direction: column; gap: 20px; min-height: 0;">
       <div class="card">
         <div class="section-header" style="margin-bottom: 12px;">
           <span class="section-title">Select Stylesheets</span>
@@ -250,13 +262,17 @@
 
       <div class="code-section" style="margin-top: 20px;">
         <div class="section-header">
-          <span class="section-title">Extracted Used CSS</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="section-title">Extracted Used CSS</span>
+            <span style="font-size: 9px; background: rgba(99, 102, 241, 0.1); color: var(--primary); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(99, 102, 241, 0.2); font-weight: 700; letter-spacing: 0.5px;">EDIT MODE</span>
+          </div>
           <div style="display: flex; gap: 8px;">
             <button id="save-history-btn" class="action-btn copy-btn" style="display: none; border-color: var(--primary); color: var(--primary);">Save to History</button>
+            <button id="inspect-btn" class="action-btn copy-btn" style="display: none; border-color: var(--primary); color: var(--primary);">Inspect</button>
             <button id="copy-btn" class="action-btn copy-btn" style="display: none;">Copy Code</button>
           </div>
         </div>
-        <div class="code-container" id="used-css-code">/* Run scan to see extracted code... */</div>
+        <textarea class="code-container" id="used-css-code" spellcheck="false" placeholder="/* Run scan to see extracted code... */"></textarea>
       </div>
     </div>
 

@@ -59,6 +59,32 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshHistoryList();
 });
 
+// --- Bi-directional Inspection: Handle clicks from page ---
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'INSPECT_ELEMENT_CLICKED') {
+    const selector = message.selector;
+    const textarea = document.getElementById('used-css-code');
+    const text = textarea.value;
+    
+    // Find the selector in the textarea (case-insensitive, searching for selector followed by whitespace and {)
+    const regex = new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*{', 'i');
+    const match = text.match(regex);
+    
+    if (match) {
+      const startPos = match.index;
+      const endPos = startPos + selector.length;
+      
+      textarea.focus();
+      textarea.setSelectionRange(startPos, endPos);
+      
+      // Calculate scroll position (rough estimate)
+      const linesBefore = text.substr(0, startPos).split('\n').length;
+      const lineHeight = 19; // Approximately matching the CSS line-height
+      textarea.scrollTop = (linesBefore - 5) * lineHeight; // Scroll to view with some padding
+    }
+  }
+});
+
 // Watch for tab updates for auto-scan
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.active) {
@@ -215,7 +241,7 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
   btn.innerHTML = 'Scanning...';
   
   const codeContainer = document.getElementById('used-css-code');
-  codeContainer.textContent = '/* Fetching and analyzing CSS... */';
+  codeContainer.value = '/* Fetching and analyzing CSS... */';
 
   try {
     const totalUsedGroups = {};
@@ -314,45 +340,49 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
     previewBtn.innerText = 'Preview';
     previewBtn.dataset.state = 'original';
     previewBtn.dataset.currentHrefs = JSON.stringify(selectedSheets.map(s => s.href));
+    
+    // Reset restore btn on new scan
+    const restoreBtn = document.getElementById('restore-btn');
+    restoreBtn.style.display = 'none';
   } catch (err) {
     console.error(err);
     btn.disabled = false;
     btn.innerHTML = 'Scan CSS';
-    codeContainer.textContent = `/* Error: ${err.message} */`;
+    codeContainer.value = `/* Error: ${err.message} */`;
   }
 });
 
 // --- Preview Button ---
+// --- Preview Button (Apply/Update) ---
 document.getElementById('preview-btn').addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
 
   const btn = document.getElementById('preview-btn');
+  const restoreBtn = document.getElementById('restore-btn');
   const isPreviewing = btn.dataset.state === 'preview';
-  const usedCss = document.getElementById('used-css-code').textContent;
+  const usedCss = document.getElementById('used-css-code').value;
   const targetHrefs = JSON.parse(btn.dataset.currentHrefs || '[]');
 
   if (isPreviewing) {
+    // UPDATE current preview
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: (hrefs) => {
-        Array.from(document.styleSheets).forEach(s => {
-          if (hrefs.includes(s.href || 'inline-style')) s.disabled = false;
-        });
-        document.getElementById('ppomcss-preview')?.remove();
-        document.getElementById('ppomcss-preview-banner')?.remove();
+      func: (css) => {
+        const style = document.getElementById('ppomcss-preview');
+        if (style) style.textContent = css;
       },
-      args: [targetHrefs]
+      args: [usedCss]
     });
-    btn.innerText = 'Preview';
-    btn.dataset.state = 'original';
-    btn.style.background = 'var(--success)';
+    btn.innerText = 'Updated!';
+    setTimeout(() => { btn.innerText = 'Update Preview'; }, 1000);
   } else {
+    // START preview
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: (css, hrefs) => {
         Array.from(document.styleSheets).forEach(s => {
-          if (hrefs.includes(s.href || 'inline-style')) s.disabled = true;
+          if (hrefs.includes(s.href || 'inline')) s.disabled = true;
         });
         document.getElementById('ppomcss-preview')?.remove();
         document.getElementById('ppomcss-preview-banner')?.remove();
@@ -367,10 +397,38 @@ document.getElementById('preview-btn').addEventListener('click', async () => {
       },
       args: [usedCss, targetHrefs]
     });
-    btn.innerText = 'Restore';
+    btn.innerText = 'Update Preview';
     btn.dataset.state = 'preview';
-    btn.style.background = '#ef4444';
+    btn.style.background = '#6366f1'; // Back to primary color for "Update"
+    restoreBtn.style.display = 'block';
   }
+});
+
+// --- Restore Button (Revert) ---
+document.getElementById('restore-btn').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+
+  const btn = document.getElementById('preview-btn');
+  const restoreBtn = document.getElementById('restore-btn');
+  const targetHrefs = JSON.parse(btn.dataset.currentHrefs || '[]');
+
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: (hrefs) => {
+      Array.from(document.styleSheets).forEach(s => {
+        if (hrefs.includes(s.href || 'inline')) s.disabled = false;
+      });
+      document.getElementById('ppomcss-preview')?.remove();
+      document.getElementById('ppomcss-preview-banner')?.remove();
+    },
+    args: [targetHrefs]
+  });
+
+  btn.innerText = 'Preview';
+  btn.dataset.state = 'original';
+  btn.style.background = 'var(--success)';
+  restoreBtn.style.display = 'none';
 });
 
 // --- UI Update & Auto-Save History ---
@@ -383,7 +441,7 @@ async function updateUI(used, total, percentage, cssGroups) {
   
   const codeContainer = document.getElementById('used-css-code');
   if (!cssGroups || Object.keys(cssGroups).length === 0) {
-    codeContainer.textContent = '/* No usable styles found in selected sheets. */';
+    codeContainer.value = '/* No usable styles found in selected sheets. */';
     document.getElementById('copy-btn').style.display = 'none';
     document.getElementById('save-history-btn').style.display = 'none';
     return;
@@ -396,8 +454,11 @@ async function updateUI(used, total, percentage, cssGroups) {
     fullCode += '\n\n';
   }
   
-  codeContainer.textContent = fullCode.trim();
+  codeContainer.value = fullCode.trim();
   document.getElementById('copy-btn').style.display = 'block';
+  document.getElementById('inspect-btn').style.display = 'block';
+  document.getElementById('inspect-btn').innerText = 'Inspect';
+  document.getElementById('inspect-btn').dataset.state = 'off';
 
   // --- Auto-Save History for All Scanned Sheets ---
   const saveBtn = document.getElementById('save-history-btn');
@@ -683,13 +744,112 @@ document.getElementById('merge-copy-btn')?.addEventListener('click', () => {
 });
 
 document.getElementById('copy-btn').addEventListener('click', () => {
-  const code = document.getElementById('used-css-code').textContent;
+  const code = document.getElementById('used-css-code').value;
   navigator.clipboard.writeText(code).then(() => {
     const copyBtn = document.getElementById('copy-btn');
     const originalText = copyBtn.innerText;
     copyBtn.innerText = 'Copied!';
     setTimeout(() => { copyBtn.innerText = originalText; }, 2000);
   });
+});
+
+document.getElementById('inspect-btn').addEventListener('click', async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+
+  const btn = document.getElementById('inspect-btn');
+  const isInspecting = btn.dataset.state === 'on';
+  const css = document.getElementById('used-css-code').value;
+
+  if (isInspecting) {
+    // CLEAR Highlights
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        document.querySelectorAll('.ppomcss-inspect-highlight').forEach(el => {
+          el.classList.remove('ppomcss-inspect-highlight');
+          // Remove click listeners
+          if (el._ppomcssHandlers) {
+            el._ppomcssHandlers.forEach(h => el.removeEventListener(h.type, h.handler));
+            delete el._ppomcssHandlers;
+          }
+        });
+        document.getElementById('ppomcss-inspect-styles')?.remove();
+      }
+    });
+    btn.innerText = 'Inspect';
+    btn.dataset.state = 'off';
+    btn.style.background = '';
+    btn.style.color = 'var(--primary)';
+  } else {
+    // APPLY Highlights
+    // Simple selector extractor: find all text before {
+    const selectors = Array.from(new Set(css.match(/[^{}]*(?=\{)/g) || []))
+      .map(s => s.trim())
+      .filter(s => s && !s.startsWith('@') && !s.startsWith('/*'));
+
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (selList) => {
+        // 1. Inject Style
+        if (!document.getElementById('ppomcss-inspect-styles')) {
+          const style = document.createElement('style');
+          style.id = 'ppomcss-inspect-styles';
+          style.textContent = `
+            .ppomcss-inspect-highlight {
+              outline: 3px solid #6366f1 !important;
+              outline-offset: -3px !important;
+              box-shadow: 0 0 15px rgba(99, 102, 241, 0.6) !important;
+              position: relative !important;
+              z-index: 999999 !important;
+              transition: all 0.2s !important;
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
+        // 2. Clear old ones first
+        document.querySelectorAll('.ppomcss-inspect-highlight').forEach(el => {
+          el.classList.remove('ppomcss-inspect-highlight');
+        });
+
+        // 3. Apply to new selectors and add click listeners
+        selList.forEach(s => {
+          try {
+            document.querySelectorAll(s).forEach(el => {
+              el.classList.add('ppomcss-inspect-highlight');
+              
+              // Add click listener for bi-directional inspection
+              const clickHandler = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                chrome.runtime.sendMessage({ 
+                  type: 'INSPECT_ELEMENT_CLICKED', 
+                  selector: s 
+                });
+              };
+              
+              el.addEventListener('click', clickHandler);
+              
+              // Store handler on element to remove later
+              if (!el._ppomcssHandlers) el._ppomcssHandlers = [];
+              el._ppomcssHandlers.push({ type: 'click', handler: clickHandler });
+            });
+          } catch (e) { console.warn('Invalid selector for inspection:', s); }
+        });
+
+        // 4. Scroll first element into view
+        const first = document.querySelector('.ppomcss-inspect-highlight');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      },
+      args: [selectors]
+    });
+
+    btn.innerText = 'Clear Highlights';
+    btn.dataset.state = 'on';
+    btn.style.background = 'var(--primary)';
+    btn.style.color = 'white';
+  }
 });
 
 // Manual Save Button (Optional status helper)
